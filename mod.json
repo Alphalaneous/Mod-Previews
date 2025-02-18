@@ -1,0 +1,26 @@
+{
+	"geode": "4.2.1",
+	"gd": {
+		"win": "2.2074",
+		"android": "2.2074",
+		"mac": "2.2074",
+		"ios": "2.2074"
+	},
+	"id": "alphalaneous.mod_previews",
+	"name": "Mod Previews",
+	"version": "v1.0.0",
+	"developer": "Alphalaneous",
+	"description": "Allows mod developers to show preview images for mods",
+	"dependencies": [
+		{
+            "id": "alphalaneous.alphas_geode_utils",
+            "version": ">=v1.0.3",
+            "importance": "required"
+        }
+    ],
+	"links": {
+        "homepage": "https://linktr.ee/Alphalaneous",
+        "source": "https://github.com/Alphalaneous/Mod-Previews",
+        "community": "https://discord.gg/Txn2CA5dHF"
+    }
+}
