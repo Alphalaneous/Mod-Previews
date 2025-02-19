@@ -21,6 +21,29 @@ class $nodeModify(MyModPopup, ModPopup) {
 		std::string m_url;
 	};
 
+	static std::string baseEnumsToString(BaseType type, int size, int color) {
+		#define ENUMS_TO_STRING(ty_)    \
+			case BaseType::ty_: {       \
+				sizeStr = baseEnumToString(static_cast<ty_##BaseSize>(size));\
+				colorStr = baseEnumToString(static_cast<ty_##BaseColor>(color));\
+			} break
+		
+			const char* typeStr = baseEnumToString(type);
+			const char* sizeStr;
+			const char* colorStr;
+			switch (type) {
+				ENUMS_TO_STRING(Circle);
+				ENUMS_TO_STRING(Cross);
+				ENUMS_TO_STRING(Account);
+				ENUMS_TO_STRING(IconSelect);
+				ENUMS_TO_STRING(Leaderboard);
+				ENUMS_TO_STRING(Editor);
+				ENUMS_TO_STRING(Tab);
+				ENUMS_TO_STRING(Category);
+			}
+			return fmt::format("base{}_{}_{}.png", typeStr, sizeStr, colorStr);
+		}
+
 	//as per fod's request, check everything and return to prevent side effects
 	bool isSafe() {
 
@@ -39,6 +62,16 @@ class $nodeModify(MyModPopup, ModPopup) {
 			if (githubURL.empty()) return false;
 		}
 		else return false;
+
+		//check if sprites exist ig
+		if (!CCSprite::createWithSpriteFrameName("edit_addCBtn_001.png")) return false;
+
+		bool geodeTheme = Loader::get()->getLoadedMod("geode.loader")->getSettingValue<bool>("enable-geode-theme");
+
+		CircleBaseColor base = geodeTheme ? CircleBaseColor::DarkPurple : CircleBaseColor::Green;
+
+		if (base == CircleBaseColor::DarkPurple && !CCSprite::createWithSpriteFrameName("geode.loader/baseCircle_Medium_DarkPurple.png")) return false;
+		if (base == CircleBaseColor::Green && !CCSprite::createWithSpriteFrameName("geode.loader/baseCircle_Medium_Green.png")) return false;
 
 		return true;
 	}
