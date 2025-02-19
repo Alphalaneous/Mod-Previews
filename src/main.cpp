@@ -21,10 +21,33 @@ class $nodeModify(MyModPopup, ModPopup) {
 		std::string m_url;
 	};
 
+	//as per fod's request, check everything and return to prevent side effects
+	bool isSafe() {
+
+		CCNode* githubBtn = getChildByIDRecursive("github");
+		if (!githubBtn) return false;
+
+		FLAlertLayer* self = reinterpret_cast<FLAlertLayer*>(this);
+		if (!self) return false;
+		if (!self->m_mainLayer) return false;
+
+		std::optional<CCNode*> firstNodeOpt = AlphaUtils::Cocos::getChildByClassName(self->m_mainLayer, "cocos2d::CCNode", 0);
+		if (!firstNodeOpt.has_value()) return false;
+
+		if (CCString* url = static_cast<CCString*>(githubBtn->getUserObject("url"))) {
+			std::string githubURL = url->getCString();
+			if (githubURL.empty()) return false;
+		}
+		else return false;
+
+		return true;
+	}
+
 	void modify() {
 		
+		if (!isSafe()) return;
+
 		CCNode* githubBtn = getChildByIDRecursive("github");
-		if (!githubBtn) return;
 
 		auto fields = m_fields.self();
 
@@ -79,58 +102,57 @@ class $nodeModify(MyModPopup, ModPopup) {
 
 		FLAlertLayer* self = reinterpret_cast<FLAlertLayer*>(this);
 		std::optional<CCNode*> firstNodeOpt = AlphaUtils::Cocos::getChildByClassName(self->m_mainLayer, "cocos2d::CCNode", 0);
-		if (!firstNodeOpt.has_value()) return;
 		CCNode* firstNode = firstNodeOpt.value();
 
 		firstNode->addChild(fields->m_imagesContainer);
 		
-		if (CCString* url = static_cast<CCString*>(githubBtn->getUserObject("url"))) {
+		CCString* url = static_cast<CCString*>(githubBtn->getUserObject("url"));
 
-			std::string githubURL = url->getCString();
-			if (githubURL.empty()) return;
+		std::string githubURL = url->getCString();
+		if (githubURL.empty()) return;
 
-			std::vector<std::string> urlParts = utils::string::split(githubURL, "://github.com/");
-			if (urlParts.size() < 2) return;
+		std::vector<std::string> urlParts = utils::string::split(githubURL, "://github.com/");
+		if (urlParts.size() < 2) return;
 
-			std::string ending = urlParts.at(urlParts.size() - 1);
+		std::string ending = urlParts.at(urlParts.size() - 1);
 
-			fields->m_url = fmt::format("https://raw.githubusercontent.com/{}/main/previews/preview-", ending);
+		fields->m_url = fmt::format("https://raw.githubusercontent.com/{}/main/previews/preview-", ending);
 
-			for (int i = 1; i <= 10; i++) {
-				std::string previewURL = fmt::format("{}{}.png", fields->m_url, i);
+		for (int i = 1; i <= 10; i++) {
+			std::string previewURL = fmt::format("{}{}.png", fields->m_url, i);
 
-				if (CCImage* image = ImageCache::get()->getImage(fmt::format("id-{}", previewURL))){
-					CCSprite* sprite = createSprite(image);
-					onImageDownloadFinish(i, sprite);
-				}
-				else {
-					auto req = web::WebRequest();
+			if (CCImage* image = ImageCache::get()->getImage(fmt::format("id-{}", previewURL))){
+				CCSprite* sprite = createSprite(image);
+				onImageDownloadFinish(i, sprite);
+			}
+			else {
+				auto req = web::WebRequest();
 
-					fields->m_listeners[previewURL].bind([this, i, previewURL](web::WebTask::Event* e){
-						if (auto res = e->getValue()){
-							if (res->ok()) {
-								auto data = res->data();
-								std::thread imageThread = std::thread([this, data, i, previewURL](){
-									CCImage* image = new CCImage();
-			
-									if(!image->initWithImageData(const_cast<uint8_t*>(data.data()), data.size())) return;
-									queueInMainThread([this, i, image, previewURL] {
-										ImageCache::get()->addImage(image, fmt::format("id-{}", previewURL));
-										image->release();
-										CCSprite* sprite = createSprite(image);
-										onImageDownloadFinish(i, sprite);
-									});
+				fields->m_listeners[previewURL].bind([this, i, previewURL](web::WebTask::Event* e){
+					if (auto res = e->getValue()){
+						if (res->ok()) {
+							auto data = res->data();
+							std::thread imageThread = std::thread([this, data, i, previewURL](){
+								CCImage* image = new CCImage();
+		
+								if(!image->initWithImageData(const_cast<uint8_t*>(data.data()), data.size())) return;
+								queueInMainThread([this, i, image, previewURL] {
+									ImageCache::get()->addImage(image, fmt::format("id-{}", previewURL));
+									image->release();
+									CCSprite* sprite = createSprite(image);
+									onImageDownloadFinish(i, sprite);
 								});
-								imageThread.detach();
-							}
+							});
+							imageThread.detach();
 						}
-					});
-					
-					auto downloadTask = req.get(previewURL);
-					fields->m_listeners[previewURL].setFilter(downloadTask);
-				}
+					}
+				});
+				
+				auto downloadTask = req.get(previewURL);
+				fields->m_listeners[previewURL].setFilter(downloadTask);
 			}
 		}
+		
 	}
 
 	void resizeDescription(CCNode* description) {
