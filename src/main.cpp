@@ -13,7 +13,7 @@ class $nodeModify(MyModPopup, ModPopup) {
 		std::map<std::string, EventListener<web::WebTask>> m_listeners;
 		std::map<int, Ref<CCSprite>> m_previewSprites;
 		std::map<int, Ref<CCMenuItemSpriteExtra>> m_previewButtons;
-		CCNode* m_imagesContainer;
+		Ref<CCNode> m_imagesContainer;
 		CCMenu* m_imagesList;
 		CCMenu* m_showAllMenu;
 		bool m_hasShownImages;
@@ -100,12 +100,6 @@ class $nodeModify(MyModPopup, ModPopup) {
 
 		fields->m_imagesContainer->addChild(background);
 
-		FLAlertLayer* self = reinterpret_cast<FLAlertLayer*>(this);
-		std::optional<CCNode*> firstNodeOpt = AlphaUtils::Cocos::getChildByClassName(self->m_mainLayer, "cocos2d::CCNode", 0);
-		CCNode* firstNode = firstNodeOpt.value();
-
-		firstNode->addChild(fields->m_imagesContainer);
-		
 		CCString* url = static_cast<CCString*>(githubBtn->getUserObject("url"));
 
 		std::string githubURL = url->getCString();
@@ -203,6 +197,14 @@ class $nodeModify(MyModPopup, ModPopup) {
 	}
 
 	void showImages() {
+		auto fields = m_fields.self();
+
+		FLAlertLayer* self = reinterpret_cast<FLAlertLayer*>(this);
+		std::optional<CCNode*> firstNodeOpt = AlphaUtils::Cocos::getChildByClassName(self->m_mainLayer, "cocos2d::CCNode", 0);
+		if (!firstNodeOpt.has_value()) return;
+		CCNode* firstNode = firstNodeOpt.value();
+
+		firstNode->addChild(fields->m_imagesContainer);
 		schedule(schedule_selector(MyModPopup::listenForDescription));
 	}
 
