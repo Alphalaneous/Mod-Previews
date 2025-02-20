@@ -1,3 +1,8 @@
+# 1.0.3
+- Fix images not showing up for repos using master branch
+- Center images
+- Add image count in popup
+
 # 1.0.2
 - Check sprite validity in the check
 

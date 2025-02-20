@@ -8,7 +8,7 @@
 	},
 	"id": "alphalaneous.mod_previews",
 	"name": "Mod Previews",
-	"version": "v1.0.2",
+	"version": "v1.0.3",
 	"developer": "Alphalaneous",
 	"description": "Allows mod developers to show preview images for mods",
 	"dependencies": [

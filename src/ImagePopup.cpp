@@ -40,6 +40,14 @@ bool ImagePopup::setup() {
     m_buttonMenu->addChild(prevButton);
     m_buttonMenu->addChild(nextButton);
 
+    m_imageCount = CCLabelBMFont::create(fmt::format("Image {}/{}", m_page, m_size).c_str(), "goldFont.fnt");
+
+    m_imageCount->setAnchorPoint({1, 1});
+    m_imageCount->setScale(0.4f);
+    m_imageCount->setPosition({m_mainLayer->getContentWidth() - 8, m_mainLayer->getContentHeight() - 8});
+
+    m_mainLayer->addChild(m_imageCount);
+
     return true;
 }
 
@@ -75,6 +83,7 @@ void ImagePopup::showImage(int page) {
         m_currentImage->setPosition(m_mainLayer->getContentSize() / 2);
         m_currentImage->setPositionY(m_currentImage->getPositionY() - 10);
         m_mainLayer->addChild(m_currentImage);
+        m_imageCount->setString(fmt::format("Image {}/{}", m_page, m_size).c_str());
     }
 }
 

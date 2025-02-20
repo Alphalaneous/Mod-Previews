@@ -76,6 +76,20 @@ class $nodeModify(MyModPopup, ModPopup) {
 		return true;
 	}
 
+	void checkIfMain(std::string url, std::function<void(bool)> callback) {
+		auto fields = m_fields.self();
+		auto req = web::WebRequest();
+
+		fields->m_listeners[url].bind([this, callback](web::WebTask::Event* e) {
+			if (auto res = e->getValue()) {
+				callback(res->ok());
+			}
+		});
+		
+		auto downloadTask = req.get(url);
+		fields->m_listeners[url].setFilter(downloadTask);
+	}
+
 	void modify() {
 		
 		if (!isSafe()) return;
@@ -142,43 +156,51 @@ class $nodeModify(MyModPopup, ModPopup) {
 		if (urlParts.size() < 2) return;
 
 		std::string ending = urlParts.at(urlParts.size() - 1);
-
-		fields->m_url = fmt::format("https://raw.githubusercontent.com/{}/main/previews/preview-", ending);
-
-		for (int i = 1; i <= 10; i++) {
-			std::string previewURL = fmt::format("{}{}.png", fields->m_url, i);
-
-			if (CCImage* image = ImageCache::get()->getImage(fmt::format("id-{}", previewURL))){
-				CCSprite* sprite = createSprite(image);
-				onImageDownloadFinish(i, sprite);
-			}
-			else {
-				auto req = web::WebRequest();
-
-				fields->m_listeners[previewURL].bind([this, i, previewURL](web::WebTask::Event* e){
-					if (auto res = e->getValue()){
-						if (res->ok()) {
-							auto data = res->data();
-							std::thread imageThread = std::thread([this, data, i, previewURL](){
-								CCImage* image = new CCImage();
 		
-								if(!image->initWithImageData(const_cast<uint8_t*>(data.data()), data.size())) return;
-								queueInMainThread([this, i, image, previewURL] {
-									ImageCache::get()->addImage(image, fmt::format("id-{}", previewURL));
-									image->release();
-									CCSprite* sprite = createSprite(image);
-									onImageDownloadFinish(i, sprite);
+		std::string modJsonUrul = fmt::format("https://raw.githubusercontent.com/{}/main/mod.json", ending);
+
+		checkIfMain(modJsonUrul, [this, fields, ending] (bool main) {
+			std::string mainBranch = "main";
+			if (!main) mainBranch = "master";
+
+			fields->m_url = fmt::format("https://raw.githubusercontent.com/{}/{}/previews/preview-", ending, mainBranch);
+
+			for (int i = 1; i <= 10; i++) {
+				std::string previewURL = fmt::format("{}{}.png", fields->m_url, i);
+
+				if (CCImage* image = ImageCache::get()->getImage(fmt::format("id-{}", previewURL))){
+					CCSprite* sprite = createSprite(image);
+					onImageDownloadFinish(i, sprite);
+				}
+				else {
+					auto req = web::WebRequest();
+
+					fields->m_listeners[previewURL].bind([this, i, previewURL](web::WebTask::Event* e){
+						if (auto res = e->getValue()){
+							if (res->ok()) {
+								auto data = res->data();
+								std::thread imageThread = std::thread([this, data, i, previewURL](){
+									CCImage* image = new CCImage();
+			
+									if(!image->initWithImageData(const_cast<uint8_t*>(data.data()), data.size())) return;
+									queueInMainThread([this, i, image, previewURL] {
+										ImageCache::get()->addImage(image, fmt::format("id-{}", previewURL));
+										image->release();
+										CCSprite* sprite = createSprite(image);
+										onImageDownloadFinish(i, sprite);
+									});
 								});
-							});
-							imageThread.detach();
+								imageThread.detach();
+							}
 						}
-					}
-				});
-				
-				auto downloadTask = req.get(previewURL);
-				fields->m_listeners[previewURL].setFilter(downloadTask);
+					});
+					
+					auto downloadTask = req.get(previewURL);
+					fields->m_listeners[previewURL].setFilter(downloadTask);
+				}
 			}
-		}
+		});
+
 		
 	}
 
@@ -281,7 +303,6 @@ class $nodeModify(MyModPopup, ModPopup) {
 				float pos = lastButton->getPositionX() + lastButton->getContentWidth();
 				if (pos + v->getContentWidth() >= 262) {
 					fields->m_showAllMenu->setVisible(true);
-					totalWidth = 262 + gap;
 					break;
 				}
 				v->setPositionX(pos + gap);
@@ -292,5 +313,8 @@ class $nodeModify(MyModPopup, ModPopup) {
 		}
 		totalWidth -= gap;
 		fields->m_imagesList->setContentWidth(totalWidth);
+		if (fields->m_showAllMenu->isVisible()) {
+			fields->m_imagesList->setPositionX((fields->m_imagesContainer->getContentWidth() - fields->m_showAllMenu->getContentWidth()) / 2);
+		}
 	}
 };
