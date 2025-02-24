@@ -22,5 +22,13 @@
         "homepage": "https://linktr.ee/Alphalaneous",
         "source": "https://github.com/Alphalaneous/Mod-Previews",
         "community": "https://discord.gg/Txn2CA5dHF"
-    }
+    },
+	"resources": {
+		"files": [
+			"resources/*"
+		]
+	},
+	"tags": [
+		"enhancement", "utility"
+	]
 }
