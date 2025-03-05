@@ -70,12 +70,6 @@ CCSprite* createSprite(CCImage* img, float scale) {
     return spr;
 }
 
-CCSize pixelsToPoints(CCSize sizeInPixels) {
-    float scaleFactor = cocos2d::CCEGLView::sharedOpenGLView()->getScaleX(); // Scale factor
-    return sizeInPixels / scaleFactor;
-}
-
-
 void ImagePopup::showImage(int page) {
 
     if (m_currentImage) m_currentImage->removeFromParent();
@@ -86,7 +80,7 @@ void ImagePopup::showImage(int page) {
         float maxWidth = 380.f;
         float maxHeight = 220.f;
 
-        CCSize originalSize = pixelsToPoints({(float)image->getWidth(), (float)image->getHeight()});
+        CCSize originalSize = m_currentImage->getContentSize();
 
         float scaleX = maxWidth / originalSize.width;
         float scaleY = maxHeight / originalSize.height;
