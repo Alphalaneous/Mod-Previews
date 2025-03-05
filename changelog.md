@@ -1,3 +1,6 @@
+# 1.0.5
+- Fix positioning of Modtober banner
+
 # 1.0.4
 - Add tags
 

@@ -12,6 +12,7 @@ protected:
     std::string m_url;
     CCSprite* m_currentImage;
     CCLabelBMFont* m_imageCount;
+    CCScale9Sprite* m_bgLayer;
 
     bool setup() override;
     bool init(int, int, std::string);

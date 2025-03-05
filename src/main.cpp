@@ -18,6 +18,7 @@ class $nodeModify(MyModPopup, ModPopup) {
 		CCMenu* m_showAllMenu;
 		bool m_hasShownImages;
 		bool m_isShowingDescription;
+		bool m_isShowingABanner;
 		std::string m_url;
 	};
 
@@ -103,7 +104,7 @@ class $nodeModify(MyModPopup, ModPopup) {
 		fields->m_imagesList->setContentSize({262, 54});
 		fields->m_imagesList->setAnchorPoint({0.5, 0.5});
 		fields->m_imagesList->ignoreAnchorPointForPosition(false);
-
+		
 		fields->m_imagesContainer = CCNode::create();
 		fields->m_imagesContainer->setID("images-container"_spr);
 		fields->m_imagesContainer->setVisible(false);
@@ -200,13 +201,30 @@ class $nodeModify(MyModPopup, ModPopup) {
 				}
 			}
 		});
+	}
 
-		
+	void resizeForBanner(CCNode* banner) {
+		auto fields = m_fields.self();
+
+		CCNode* description = getChildByIDRecursive("description-container");
+		resizeDescription(description);
+
+		fields->m_imagesContainer->setPositionY(30);
 	}
 
 	void resizeDescription(CCNode* description) {
-		description->setContentHeight(192);
-		description->setPositionY(67);
+		auto fields = m_fields.self();
+
+		float offset = 0;
+		float gap = 0;
+
+		if (fields->m_isShowingABanner) {
+			gap = 10;
+			offset = 25 + gap;
+		}
+
+		description->setContentHeight(192 - offset);
+		description->setPositionY(67 + offset - gap/2);
 
 		if (MDTextArea* textArea = static_cast<MDTextArea*>(description->getChildByID("textarea"))) {
 			textArea->setContentHeight(description->getContentHeight());
@@ -222,7 +240,6 @@ class $nodeModify(MyModPopup, ModPopup) {
 				scrollLayer->scrollToTop();
 			}
 		}
-
 	}
 
 	void listenForDescription(float dt) {
@@ -238,6 +255,18 @@ class $nodeModify(MyModPopup, ModPopup) {
 		if (fields->m_isShowingDescription && !description){
 			fields->m_imagesContainer->setVisible(false);
 			fields->m_isShowingDescription = false;
+		}
+	}
+
+	void listenForBanner(float dt) {
+		auto fields = m_fields.self();
+
+		CCNode* modtoberBanner = getChildByIDRecursive("modtober-banner");
+
+		if (modtoberBanner) {
+			fields->m_isShowingABanner = true;
+			resizeForBanner(modtoberBanner);
+			unschedule(schedule_selector(MyModPopup::listenForBanner));
 		}
 	}
 
@@ -261,6 +290,7 @@ class $nodeModify(MyModPopup, ModPopup) {
 
 		firstNode->addChild(fields->m_imagesContainer);
 		schedule(schedule_selector(MyModPopup::listenForDescription));
+		schedule(schedule_selector(MyModPopup::listenForBanner));
 	}
 
 	void showPopup(CCObject* sender) {
