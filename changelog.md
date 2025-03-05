@@ -1,3 +1,6 @@
+# 1.0.6
+- Fix a crash
+
 # 1.0.5
 - Fix positioning of Modtober banner
 

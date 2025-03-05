@@ -80,14 +80,14 @@ void ImagePopup::showImage(int page) {
         float maxWidth = 380.f;
         float maxHeight = 220.f;
 
+        m_currentImage = createSprite(image, 0);
+
         CCSize originalSize = m_currentImage->getContentSize();
 
         float scaleX = maxWidth / originalSize.width;
         float scaleY = maxHeight / originalSize.height;
 
         float scale = std::min(scaleX, scaleY);
-
-        m_currentImage = createSprite(image, 6.5 / scale);
 
         m_currentImage->setScale(scale);
 
