@@ -1,3 +1,6 @@
+# 1.0.7
+- Fix sizing
+
 # 1.0.6
 - Fix a crash
 

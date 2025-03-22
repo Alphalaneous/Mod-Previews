@@ -77,8 +77,8 @@ void ImagePopup::showImage(int page) {
 
     if (CCImage* image = ImageCache::get()->getImage(fmt::format("id-{}", previewURL))) {
         
-        float maxWidth = 380.f;
-        float maxHeight = 220.f;
+        float maxWidth = 340.f;
+        float maxHeight = 210.f;
 
         m_currentImage = createSprite(image, 0);
 
