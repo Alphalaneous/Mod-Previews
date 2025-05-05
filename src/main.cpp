@@ -1,5 +1,6 @@
 #include <Geode/Geode.hpp>
 #include <Geode/utils/web.hpp>
+#include <Geode/ui/LazySprite.hpp>
 #include "alphalaneous.alphas_geode_utils/include/NodeModding.h"
 #include "alphalaneous.alphas_geode_utils/include/Utils.h"
 #include "ImageCache.hpp"
@@ -14,6 +15,7 @@ class $nodeModify(MyModPopup, ModPopup) {
 		std::map<int, Ref<CCSprite>> m_previewSprites;
 		std::map<int, Ref<CCMenuItemSpriteExtra>> m_previewButtons;
 		Ref<CCNode> m_imagesContainer;
+		std::vector<Ref<LazySprite>> m_sprites;
 		CCMenu* m_imagesList;
 		CCMenu* m_showAllMenu;
 		bool m_hasShownImages;
@@ -169,36 +171,14 @@ class $nodeModify(MyModPopup, ModPopup) {
 			for (int i = 1; i <= 10; i++) {
 				std::string previewURL = fmt::format("{}{}.png", fields->m_url, i);
 
-				if (CCImage* image = ImageCache::get()->getImage(fmt::format("id-{}", previewURL))){
-					CCSprite* sprite = createSprite(image);
-					onImageDownloadFinish(i, sprite);
-				}
-				else {
-					auto req = web::WebRequest();
-
-					fields->m_listeners[previewURL].bind([this, i, previewURL](web::WebTask::Event* e){
-						if (auto res = e->getValue()){
-							if (res->ok()) {
-								auto data = res->data();
-								std::thread imageThread = std::thread([this, data, i, previewURL](){
-									CCImage* image = new CCImage();
-			
-									if(!image->initWithImageData(const_cast<uint8_t*>(data.data()), data.size())) return;
-									queueInMainThread([this, i, image, previewURL] {
-										ImageCache::get()->addImage(image, fmt::format("id-{}", previewURL));
-										image->release();
-										CCSprite* sprite = createSprite(image);
-										onImageDownloadFinish(i, sprite);
-									});
-								});
-								imageThread.detach();
-							}
-						}
-					});
-					
-					auto downloadTask = req.get(previewURL);
-					fields->m_listeners[previewURL].setFilter(downloadTask);
-				}
+				LazySprite* spr = LazySprite::create({100, 50});
+				fields->m_sprites.push_back(spr);
+				spr->setLoadCallback([this, i, spr](Result<> res) {
+					if (res.isOk()) {
+						onImageDownloadFinish(i, spr);
+					}
+				});
+				spr->loadFromUrl(previewURL);
 			}
 		});
 	}

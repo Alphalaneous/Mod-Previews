@@ -1,7 +1,6 @@
 #include "ImagePopup.hpp"
 #include "ImageCache.hpp"
 
-
 bool ImagePopup::init(int page, int size, std::string url){
     bool geodeTheme = Loader::get()->getLoadedMod("geode.loader")->getSettingValue<bool>("enable-geode-theme");
 
@@ -48,58 +47,54 @@ bool ImagePopup::setup() {
     m_imageCount->setPosition({m_mainLayer->getContentWidth() - 8, m_mainLayer->getContentHeight() - 8});
     m_mainLayer->addChild(m_imageCount);
 
-    //m_bgLayer = CCScale9Sprite::create("square02b_001.png");
-    //m_bgLayer->setOpacity(127);
-    //m_bgLayer->setColor({0, 0, 0});
-    //m_bgLayer->setPosition(m_mainLayer->getContentSize() / 2);
-    //m_bgLayer->setPositionY(m_bgLayer->getPositionY() - 10);
-    //m_bgLayer->ignoreAnchorPointForPosition(false);
-
-    //m_mainLayer->addChild(m_bgLayer);
-
     return true;
 }
 
-CCSprite* createSprite(CCImage* img, float scale) {
-    CCTexture2D* texture = new CCTexture2D();
-    CCSprite* spr;
-    if (texture->initWithImage(img)){
-        spr = CCSprite::createWithTexture(texture);
-    }
-    texture->release();
-    return spr;
-}
-
 void ImagePopup::showImage(int page) {
-
-    if (m_currentImage) m_currentImage->removeFromParent();
+    if (m_currentImage) {
+        m_currentImage->removeFromParent();
+    }
     std::string previewURL = fmt::format("{}{}.png", m_url, page);
 
-    if (CCImage* image = ImageCache::get()->getImage(fmt::format("id-{}", previewURL))) {
-        
-        float maxWidth = 340.f;
-        float maxHeight = 210.f;
+    LazySprite* spr;
 
-        m_currentImage = createSprite(image, 0);
-
-        CCSize originalSize = m_currentImage->getContentSize();
-
-        float scaleX = maxWidth / originalSize.width;
-        float scaleY = maxHeight / originalSize.height;
-
-        float scale = std::min(scaleX, scaleY);
-
-        m_currentImage->setScale(scale);
-
-        m_currentImage->setPosition(m_mainLayer->getContentSize() / 2);
-        m_currentImage->setPositionY(m_currentImage->getPositionY() - 10);
-        m_mainLayer->addChild(m_currentImage);
-
-        CCSize imageSize = m_currentImage->getScaledContentSize() + CCSize{6, 6};
-        //m_bgLayer->setContentSize(imageSize / m_bgLayer->getScale());
-
-        m_imageCount->setString(fmt::format("Image {}/{}", m_page, m_size).c_str());
+    if (LazySprite* sprite = m_sprites[page]) {
+        spr = sprite;
+        onLoad(spr);
     }
+    else {
+        spr = LazySprite::create({100, 50});
+        m_sprites[page] = spr;
+        spr->setLoadCallback([this, spr](Result<> res) {
+            if (res.isOk()) {
+                onLoad(spr);
+            }
+        });
+        spr->loadFromUrl(previewURL);
+    }
+    m_currentImage = spr;
+    m_mainLayer->addChild(spr);
+}
+
+void ImagePopup::onLoad(LazySprite* spr) {
+    float maxWidth = 340.f;
+    float maxHeight = 210.f;
+
+    CCSize originalSize = spr->getContentSize();
+
+    float scaleX = maxWidth / originalSize.width;
+    float scaleY = maxHeight / originalSize.height;
+
+    float scale = std::min(scaleX, scaleY);
+
+    spr->setScale(scale);
+
+    spr->setPosition(m_mainLayer->getContentSize() / 2);
+    spr->setPositionY(spr->getPositionY() - 10);
+
+    CCSize imageSize = spr->getScaledContentSize() + CCSize{6, 6};
+
+    m_imageCount->setString(fmt::format("Image {}/{}", m_page, m_size).c_str());
 }
 
 void ImagePopup::onPrev(CCObject* sender) {
@@ -112,12 +107,6 @@ void ImagePopup::onNext(CCObject* sender) {
     m_page++;
     if (m_page > m_size) m_page = 1;
     showImage(m_page);
-}
-
-void ImagePopup::onClose(cocos2d::CCObject*){
-    this->setKeypadEnabled(false);
-    this->setTouchEnabled(false);
-    this->removeFromParentAndCleanup(true);
 }
 
 ImagePopup* ImagePopup::create(int page, int size, std::string url) {
