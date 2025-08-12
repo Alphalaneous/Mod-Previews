@@ -1,3 +1,6 @@
+# 1.0.10
+- iOS rebuild
+
 # 1.0.9
 - Use LazySprite
 
