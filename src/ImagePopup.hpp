@@ -14,7 +14,7 @@ protected:
     LazySprite* m_currentImage;
     CCLabelBMFont* m_imageCount;
     CCScale9Sprite* m_bgLayer;
-    std::unordered_map<int, Ref<LazySprite>> m_sprites;
+    std::unordered_map<int, LazySprite*> m_sprites;
 
     bool setup() override;
     bool init(int, int, std::string);

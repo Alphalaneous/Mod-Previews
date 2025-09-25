@@ -3,10 +3,15 @@
 #include <Geode/ui/LazySprite.hpp>
 #include "alphalaneous.alphas_geode_utils/include/NodeModding.h"
 #include "alphalaneous.alphas_geode_utils/include/Utils.h"
-#include "ImageCache.hpp"
 #include "ImagePopup.hpp"
 
 using namespace geode::prelude;
+
+struct RepoData {
+	bool valid = false;
+	std::string rawURL;
+	std::string repo;
+};
 
 class $nodeModify(MyModPopup, ModPopup) {
 
@@ -25,27 +30,27 @@ class $nodeModify(MyModPopup, ModPopup) {
 	};
 
 	static std::string baseEnumsToString(BaseType type, int size, int color) {
-		#define ENUMS_TO_STRING(ty_)    \
-			case BaseType::ty_: {       \
-				sizeStr = baseEnumToString(static_cast<ty_##BaseSize>(size));\
-				colorStr = baseEnumToString(static_cast<ty_##BaseColor>(color));\
+		#define ENUMS_TO_STRING(ty_)                                              \
+			case BaseType::ty_: {                                                 \
+				sizeStr = baseEnumToString(static_cast<ty_##BaseSize>(size));     \
+				colorStr = baseEnumToString(static_cast<ty_##BaseColor>(color));  \
 			} break
 		
-			const char* typeStr = baseEnumToString(type);
-			const char* sizeStr;
-			const char* colorStr;
-			switch (type) {
-				ENUMS_TO_STRING(Circle);
-				ENUMS_TO_STRING(Cross);
-				ENUMS_TO_STRING(Account);
-				ENUMS_TO_STRING(IconSelect);
-				ENUMS_TO_STRING(Leaderboard);
-				ENUMS_TO_STRING(Editor);
-				ENUMS_TO_STRING(Tab);
-				ENUMS_TO_STRING(Category);
-			}
-			return fmt::format("base{}_{}_{}.png", typeStr, sizeStr, colorStr);
+		const char* typeStr = baseEnumToString(type);
+		const char* sizeStr;
+		const char* colorStr;
+		switch (type) {
+			ENUMS_TO_STRING(Circle);
+			ENUMS_TO_STRING(Cross);
+			ENUMS_TO_STRING(Account);
+			ENUMS_TO_STRING(IconSelect);
+			ENUMS_TO_STRING(Leaderboard);
+			ENUMS_TO_STRING(Editor);
+			ENUMS_TO_STRING(Tab);
+			ENUMS_TO_STRING(Category);
 		}
+		return fmt::format("base{}_{}_{}.png", typeStr, sizeStr, colorStr);
+	}
 
 	//as per fod's request, check everything and return to prevent side effects
 	bool isSafe() {
@@ -57,7 +62,7 @@ class $nodeModify(MyModPopup, ModPopup) {
 		if (!self) return false;
 		if (!self->m_mainLayer) return false;
 
-		std::optional<CCNode*> firstNodeOpt = AlphaUtils::Cocos::getChildByClassName(self->m_mainLayer, "cocos2d::CCNode", 0);
+		std::optional<CCNode*> firstNodeOpt = AlphaUtils::Cocos::getChildByClassName(self->m_mainLayer, "CCNode", 0);
 		if (!firstNodeOpt.has_value()) return false;
 
 		if (CCString* url = static_cast<CCString*>(githubBtn->getUserObject("url"))) {
@@ -152,35 +157,68 @@ class $nodeModify(MyModPopup, ModPopup) {
 
 		CCString* url = static_cast<CCString*>(githubBtn->getUserObject("url"));
 
-		std::string githubURL = url->getCString();
-		if (githubURL.empty()) return;
-
-		std::vector<std::string> urlParts = utils::string::split(githubURL, "://github.com/");
-		if (urlParts.size() < 2) return;
-
-		std::string ending = urlParts.at(urlParts.size() - 1);
+		std::string sourceURL = url->getCString();
+		if (sourceURL.empty()) return;
+		utils::string::toLowerIP(sourceURL);
 		
-		std::string modJsonUrul = fmt::format("https://raw.githubusercontent.com/{}/main/mod.json", ending);
+		RepoData data = getRepoData(sourceURL);
 
-		checkIfMain(modJsonUrul, [this, fields, ending] (bool main) {
+		if (!data.valid) return;
+
+		std::string modJsonUrul = fmt::format("{}/main/mod.json", data.rawURL);
+
+		checkIfMain(modJsonUrul, [self = Ref(this), data] (bool main) {
 			std::string mainBranch = "main";
 			if (!main) mainBranch = "master";
 
-			fields->m_url = fmt::format("https://raw.githubusercontent.com/{}/{}/previews/preview-", ending, mainBranch);
+			auto fields = self->m_fields.self();
+
+			fields->m_url = fmt::format("{}/{}/previews/preview-", data.rawURL, mainBranch);
 
 			for (int i = 1; i <= 10; i++) {
 				std::string previewURL = fmt::format("{}{}.png", fields->m_url, i);
-
 				LazySprite* spr = LazySprite::create({100, 50});
 				fields->m_sprites.push_back(spr);
-				spr->setLoadCallback([this, i, spr](Result<> res) {
+				spr->setLoadCallback([self, i, spr](Result<> res) {
 					if (res.isOk()) {
-						onImageDownloadFinish(i, spr);
+						self->onImageDownloadFinish(i, spr);
 					}
 				});
 				spr->loadFromUrl(previewURL);
 			}
 		});
+	}
+
+	RepoData getRepoData(const std::string& url) {
+
+		std::vector<std::string> split = utils::string::split(url, "://");
+		if (split.size() < 2) return RepoData{};
+		std::string& postURL = split[1];
+		std::string prefixWWW = "www.";
+		if (postURL.starts_with(prefixWWW)) {
+			postURL.erase(0, prefixWWW.size());
+		}
+
+		std::vector<std::string> splitSlash = utils::string::split(postURL, "/");
+		if (splitSlash.size() < 2) return RepoData{};
+
+		std::string& platformURL = splitSlash[0];
+		std::string repo = postURL.substr(platformURL.size() + 1);
+
+		std::string rawURL = "";
+
+		if (platformURL == "github.com") {
+			rawURL = fmt::format("https://raw.githubusercontent.com/{}", repo);
+		}
+		if (platformURL == "codeberg.org") {
+			rawURL = fmt::format("https://codeberg.org/{}/raw/branch", repo);
+		}
+
+		return RepoData{
+			.valid = true,
+			.rawURL = rawURL,
+			.repo = repo
+		};
 	}
 
 	void resizeForBanner(CCNode* banner) {
@@ -264,7 +302,7 @@ class $nodeModify(MyModPopup, ModPopup) {
 		auto fields = m_fields.self();
 
 		FLAlertLayer* self = reinterpret_cast<FLAlertLayer*>(this);
-		std::optional<CCNode*> firstNodeOpt = AlphaUtils::Cocos::getChildByClassName(self->m_mainLayer, "cocos2d::CCNode", 0);
+		std::optional<CCNode*> firstNodeOpt = AlphaUtils::Cocos::getChildByClassName(self->m_mainLayer, "CCNode", 0);
 		if (!firstNodeOpt.has_value()) return;
 		CCNode* firstNode = firstNodeOpt.value();
 

@@ -1,5 +1,4 @@
 #include "ImagePopup.hpp"
-#include "ImageCache.hpp"
 
 bool ImagePopup::init(int page, int size, std::string url){
     bool geodeTheme = Loader::get()->getLoadedMod("geode.loader")->getSettingValue<bool>("enable-geode-theme");
